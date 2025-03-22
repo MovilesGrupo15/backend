@@ -47,6 +47,7 @@ async def detect_objects(websocket: WebSocket):
     except Exception as e:
         await websocket.close(code=1000, reason=str(e))
 
+
 @app.get("/api/offers")
 async def get_offers():
     result = []
@@ -63,7 +64,7 @@ async def get_offers():
     return result
 
 @app.get("/api/points")
-async def get_offers():
+async def get_points():
     result = []
     min_lat, max_lat = 4.4929, 4.8354
     min_lon, max_lon = -74.2264, -74.0030
