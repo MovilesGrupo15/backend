@@ -57,7 +57,25 @@ async def get_offers():
             "description": fake.text(),
             "points": random.randint(50, 500),
             "imageUrl": image,
-            "backgroundColor": random.choice([None, random.randint(0x000000, 0xFFFFFF)])
+            "backgroundColor": random.randint(0x000000, 0xFFFFFF)
+        })
+
+    return result
+
+@app.get("/api/points")
+async def get_offers():
+    result = []
+    min_lat, max_lat = 4.4929, 4.8354
+    min_lon, max_lon = -74.2264, -74.0030
+    for i in range(random.randint(15,30)):
+        image = f"https://picsum.photos/200/300?id={i}"
+        result.append({
+            "id": str(uuid.uuid4()),
+            "name": fake.company(),
+            "description": fake.text(),
+            "latitude": random.uniform(min_lat, max_lat),
+            "longitude": random.uniform(min_lon, max_lon),
+            "address": fake.address(),
         })
 
     return result
