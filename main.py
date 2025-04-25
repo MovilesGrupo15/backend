@@ -1,5 +1,7 @@
+import httpx
+import json
 import uuid
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import JSONResponse
 import random
 import uvicorn
@@ -63,23 +65,46 @@ async def get_offers():
 
     return result
 
+# Base URL for the API
+BASE_POSCONSUMO = "https://visorgeo.ambientebogota.gov.co/api/v1/posconsumo_vista"
+
+BASE_RESIDUOS = "https://visorgeo.ambientebogota.gov.co/api/v1/residuo/?format=json"
+
 @app.get("/api/points")
 async def get_points():
-    result = []
-    min_lat, max_lat = 4.4929, 4.8354
-    min_lon, max_lon = -74.2264, -74.0030
-    for i in range(random.randint(15,30)):
-        image = f"https://picsum.photos/200/300?id={i}"
-        result.append({
-            "id": str(uuid.uuid4()),
-            "name": fake.company(),
-            "description": fake.text(),
-            "latitude": random.uniform(min_lat, max_lat),
-            "longitude": random.uniform(min_lon, max_lon),
-            "address": fake.address(),
-        })
+    url = f"{BASE_POSCONSUMO}/"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
 
-    return result
+    data = resp.json()
+    objects = data.get("objects", [])
+    result = []
+    for obj in objects:
+        coords = obj.get("geom", {}).get("coordinates", [None, None])
+        lon, lat = coords[0], coords[1]
+        result.append({
+            "id":        str(obj.get("gid", uuid.uuid4())),
+            "name":      obj.get("nombre", ""),
+            "description": obj.get("residuo_nombre", ""),
+            "latitude":  lat,
+            "longitude": lon,
+            "address":   obj.get("direccion", ""),
+            "horario": obj.get("horario", "Horario no disponible"),
+        })
+    return JSONResponse(result)
+
+
+@app.get("/api/points/{point_id}")
+async def get_point_detail(point_id: int):
+    url = f"{BASE_POSCONSUMO}/{point_id}/"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url)
+        if resp.status_code == 404:
+            raise HTTPException(status_code=404, detail="Point not found")
+        resp.raise_for_status()
+    return JSONResponse(content=resp.json())
+
 
 @app.get("/api/user")
 async def get_user():
